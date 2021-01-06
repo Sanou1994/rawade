@@ -11,12 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.app.Dao.DaoDate;
+import com.app.Dao.DaoMajourne;
 import com.app.Dao.DaoSoldeDebuter;
 import com.app.Dao.DaoTransaction;
 import com.app.Dao.DaoUser;
 import com.app.metier.IService.IService;
 import com.app.metier.entities.Connexion;
 import com.app.metier.entities.Dates;
+import com.app.metier.entities.Majournee;
 import com.app.metier.entities.SoldeDebuterJournee;
 import com.app.metier.entities.Transaction;
 import com.app.metier.entities.Utilisateur;
@@ -36,6 +38,9 @@ public class RestService  implements IService {
     private DaoTransaction transactionRepository;
     @Autowired
     private DaoSoldeDebuter soldeDebuterJourneeRepository;
+    
+    @Autowired
+    private DaoMajourne maJourneeRepository;
  //LA PARTIE CRUD DE DATE   
     
     
@@ -99,7 +104,6 @@ public class RestService  implements IService {
         response.put("deleted", Boolean.TRUE);
         return response;
     }
-    
    
     public List<SoldeDebuterJournee>getSoldeDebuterJournees( int userId) {
         return soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui), userId,1);
@@ -118,9 +122,26 @@ public class RestService  implements IService {
    
     public SoldeDebuterJournee createSoldeDebuterJournee(SoldeDebuterJournee user) {
     	jour();
+    	Majournee copie = new Majournee();
+    	copie.setCaisse(user.getCaisse());
+    	copie.setOrange(user.getOrange());
+    	copie.setxpress(user.getxpress());
+    	copie.setBanque(user.getBanque());
+    	copie.setExpresso(user.getExpresso());
+    	copie.setProximo(user.getProximo());
+    	copie.setFreeMoney(user.getFreeMoney());
+    	copie.setWari(user.getWari());
+    	copie.setWave(user.getWave());
+    	copie.setWizall(user.getWizall());
+    	copie.setYup(user.getYup()); 
+    	copie.setCloturer(user.getCloturer());
+    	copie.setSommeInitiale(user.getSommeInitiale());
+    	copie.setIdU(user.getIdU());
+    	copie.setDate(user.getDate());
+    	copie.setStatus(user.getStatus());
+    	maJourneeRepository.save(copie);
         return soldeDebuterJourneeRepository.save(user);
     }
-    
    
     public SoldeDebuterJournee updateSoldeDebuterJournee( int userId,  SoldeDebuterJournee ad) {
     	SoldeDebuterJournee admin =
@@ -191,7 +212,7 @@ public class RestService  implements IService {
     public void createTransactions( Transaction user) {
     	int id_user= user.getIdU();
     	
-    	SoldeDebuterJournee soldes =soldeDebuterJourneeRepository.findByDateAndIdU(formater.format(aujourdhui),id_user).get(0);
+    	SoldeDebuterJournee soldes =soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),id_user,1).get(0);
     	
     	if(user.getSens().equals("encaissement")) {
     		
@@ -313,7 +334,7 @@ public class RestService  implements IService {
     	Transaction admin =
     			transactionRepository
                         .findById(userId);
-    	SoldeDebuterJournee soldes =soldeDebuterJourneeRepository.findByDateAndIdU(formater.format(aujourdhui),ad.getIdU()).get(0);
+    	SoldeDebuterJournee soldes =soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),ad.getIdU(),1).get(0);
     	double dec = admin.getMontant()-ad.getMontant();
         if(ad.getSens().equals("encaissement")) {
     		
@@ -538,7 +559,7 @@ public class RestService  implements IService {
     	Transaction user =
     			transactionRepository
                         .findById(userId);
-		SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdU(formater.format(aujourdhui),user.getIdU()).get(0);
+		SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),user.getIdU(),1).get(0);
     	if(user.getSens().equals("decaissement")) {
             switch (user.getOperateur()) {
              case "Sortie":
@@ -671,10 +692,12 @@ public class RestService  implements IService {
    
     public double cloturer(  int id, double con){	
     	
-    	SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdU(formater.format(aujourdhui),id).get(0);
+    	SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),id,1).get(0);
+    	Majournee solde1 =maJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),id,1).get(0);
         solde.setCloturer(con);
+        solde1.setCloturer(con);
         updateSoldeDebuterJournee(solde.getId(),solde);
-        
+        updateMajournee(solde1.getId(),solde1);
         mettreTransactionAzero(id) ;
     	return con;
      }
@@ -743,8 +766,8 @@ public class RestService  implements IService {
 
     
     public double sommeInitiale( int id){
-    	SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),id,1).get(0);
-    	return (solde!=null)? solde.getSommeInitiale() : 0;
+    	Majournee solde =maJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),id,1).get(0);
+    	return (solde!=null)? solde.getCaisse() : 0;
      }
    
     public double totalDecaissement( int id){
@@ -804,17 +827,17 @@ public class RestService  implements IService {
     
     public List<Transaction>listeHistorique( history user){
     	
-    	return transactionRepository.findByIdUAndDateOrOperateurOrOperation(user.getId(),user.getDate(),user.getDate(),user.getDate());
+    	return transactionRepository.findByIdUAndDateBetween(user.getId(),user.getDate(),user.getDate1());
     }
 
     public List<Transaction>listeRehercherParOperateur( int id_caissier,String operation){
     	
-    	return transactionRepository.findByOperateurAndDateAndIdU(operation,formater.format(aujourdhui), id_caissier);
+    	return transactionRepository.findByOperateurAndDateAndIdUAndStatus(operation,formater.format(aujourdhui), id_caissier,1);
     }
    
     public List<Transaction>listeRehercherParOperation( int id_caissier, String operation){
     	
-    	return transactionRepository.findByDateAndIdUAndSens(formater.format(aujourdhui), id_caissier,operation);
+    	return transactionRepository.findByDateAndIdUAndSensAndStatus(formater.format(aujourdhui), id_caissier,operation,1);
     }
     public void actionPlafonnementDeplafonnement(SoldeDebuterJournee solde,double ancienMontant,String nomOp) {
     	  switch (nomOp) {
@@ -1005,7 +1028,7 @@ public class RestService  implements IService {
     
     private void update(int idU,String operateur) {
 		
-    	SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdU(formater.format(aujourdhui),idU).get(0);
+    	SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),idU,1).get(0);
     	   switch (operateur) {
     	   case "caisse":
 				  solde.setCaisse(solde.getCaisse()+totalEncaissement(idU)-totalDecaissement(idU));
@@ -1013,8 +1036,8 @@ public class RestService  implements IService {
     	   case "Banque":
 				double sommeDa = 0,sommeBanqueP = 0;
 				double sommeEa = 0,sommeBanqueD = 0;
-				List<Transaction> listeDa =transactionRepository.findByOperateurAndSensAndIdU("Banque","decaissement",idU);
-				List<Transaction> listeEa =transactionRepository.findByOperateurAndSensAndIdU("Banque","encaissement",idU);
+				List<Transaction> listeDa =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Banque","decaissement",idU);
+				List<Transaction> listeEa =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Banque","encaissement",idU);
 				List<Transaction> listeBanqueP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Banque",formater.format(aujourdhui),idU);
 				List<Transaction> listeBanqueD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Banque",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeBanqueP) {
@@ -1035,8 +1058,8 @@ public class RestService  implements IService {
 			case "Orange":
 				double sommeD = 0,sommeOrangeD = 0;
 				double sommeE = 0,sommeOrangeP = 0;
-				List<Transaction> listeD =transactionRepository.findByOperateurAndSensAndIdU("Orange","decaissement",idU);
-				List<Transaction> listeE =transactionRepository.findByOperateurAndSensAndIdU("Orange","encaissement",idU);
+				List<Transaction> listeD =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Orange","decaissement",idU);
+				List<Transaction> listeE =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Orange","encaissement",idU);
 				List<Transaction> listeOrangeP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Orange",formater.format(aujourdhui),idU);
 				List<Transaction> listeOrangeD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Orange",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeOrangeP) {
@@ -1056,8 +1079,8 @@ public class RestService  implements IService {
             case "Expresso":
             	double sommeD1 = 0,sommeExpressoP= 0;
 				double sommeE1 = 0,sommeExpressoD= 0;
-				List<Transaction> listeD1 =transactionRepository.findByOperateurAndSensAndIdU("Expresso","decaissement",idU);
-				List<Transaction> listeE1 =transactionRepository.findByOperateurAndSensAndIdU("Expresso","encaissement",idU);
+				List<Transaction> listeD1 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Expresso","decaissement",idU);
+				List<Transaction> listeE1 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Expresso","encaissement",idU);
 				List<Transaction> listeExpressoP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Expresso",formater.format(aujourdhui),idU);
 				List<Transaction> listeExpressoD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Expresso",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeExpressoP) {
@@ -1077,8 +1100,8 @@ public class RestService  implements IService {
             case "Free":
             	double sommeD11 = 0,sommeFreeP =0;
 				double sommeE11 = 0,sommeFreeD =0;
-				List<Transaction> listeE11 =transactionRepository.findByOperateurAndSensAndIdU("Free","decaissement",idU);
-				List<Transaction> listeD11 =transactionRepository.findByOperateurAndSensAndIdU("Free","encaissement",idU);
+				List<Transaction> listeE11 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Free","decaissement",idU);
+				List<Transaction> listeD11 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Free","encaissement",idU);
 				List<Transaction> listeFreeP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Free",formater.format(aujourdhui),idU);
 				List<Transaction> listeFreeD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Free",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeFreeP) {
@@ -1098,8 +1121,8 @@ public class RestService  implements IService {
             case "Wari":
             	double sommeD111 = 0,sommeWariP=0;
 				double sommeE111 = 0,sommeWariD = 0;
-				List<Transaction> listeD111 =transactionRepository.findByOperateurAndSensAndIdU("Wari","decaissement",idU);
-				List<Transaction> listeE111 =transactionRepository.findByOperateurAndSensAndIdU("Wari","encaissement",idU);
+				List<Transaction> listeD111 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Wari","decaissement",idU);
+				List<Transaction> listeE111 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Wari","encaissement",idU);
 				List<Transaction> listeWariP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Wari",formater.format(aujourdhui),idU);
 				List<Transaction> listeWariD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Wari",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeWariP) {
@@ -1119,8 +1142,8 @@ public class RestService  implements IService {
             case "Wizall":
             	double somme1 = 0,sommeWizallP=0;
 				double somme2 = 0,sommeWizallD=0;
-				List<Transaction> liste1 =transactionRepository.findByOperateurAndSensAndIdU("Wizall","decaissement",idU);
-				List<Transaction> liste2 =transactionRepository.findByOperateurAndSensAndIdU("Wizall","encaissement",idU);
+				List<Transaction> liste1 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Wizall","decaissement",idU);
+				List<Transaction> liste2 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Wizall","encaissement",idU);
 				List<Transaction> listeWizallP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Wizall",formater.format(aujourdhui),idU);
 				List<Transaction> listeWizallD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Wizall",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeWizallP) {
@@ -1140,8 +1163,8 @@ public class RestService  implements IService {
              case "Proximo":
             	 double somme11 = 0,sommeProximoP=0;
  				double somme21 = 0,sommeProximoD=0;
- 				List<Transaction> liste21 =transactionRepository.findByOperateurAndSensAndIdU("Proximo","decaissement",idU);
-				List<Transaction> liste11 =transactionRepository.findByOperateurAndSensAndIdU("Proximo","encaissement",idU);
+ 				List<Transaction> liste21 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Proximo","decaissement",idU);
+				List<Transaction> liste11 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Proximo","encaissement",idU);
 				List<Transaction> listeProximoP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Proximo",formater.format(aujourdhui),idU);
 				List<Transaction> listeProximoD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Proximo",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeProximoP) {
@@ -1161,8 +1184,8 @@ public class RestService  implements IService {
              case "Xpress":
             	 double somme111 = 0,sommeXpressP = 0;
   				double somme211 = 0,sommeXpressD = 0;
-  				List<Transaction> liste211 =transactionRepository.findByOperateurAndSensAndIdU("Xpress","decaissement",idU);
-				List<Transaction> liste111 =transactionRepository.findByOperateurAndSensAndIdU("Xpress","encaissement",idU);
+  				List<Transaction> liste211 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Xpress","decaissement",idU);
+				List<Transaction> liste111 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Xpress","encaissement",idU);
 				List<Transaction> listeXpressP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Xpress",formater.format(aujourdhui),idU);
 				List<Transaction> listeXpressD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Xpress",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeXpressP) {
@@ -1182,8 +1205,8 @@ public class RestService  implements IService {
               case "Yup":
             	  double somme1111 = 0,sommeYupP = 0;
     				double somme2111 = 0,sommeYupD = 0;
-    				List<Transaction> liste2111 =transactionRepository.findByOperateurAndSensAndIdU("Yup","decaissement",idU);
-    				List<Transaction> liste1111 =transactionRepository.findByOperateurAndSensAndIdU("Yup","encaissement",idU);
+    				List<Transaction> liste2111 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Yup","decaissement",idU);
+    				List<Transaction> liste1111 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Yup","encaissement",idU);
     				List<Transaction> listeYupP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Yup",formater.format(aujourdhui),idU);
     				List<Transaction> listeYupD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Yup",formater.format(aujourdhui),idU);
     				for (Transaction transaction : listeYupP) {
@@ -1204,8 +1227,8 @@ public class RestService  implements IService {
               case "Wave":
             	  double somme11111 = 0,sommeWaveP = 0;
   				double somme21111 = 0 , sommeWaveD = 0;
-  				List<Transaction> liste21111 =transactionRepository.findByOperateurAndSensAndIdU("Wave","decaissement",idU);
-				List<Transaction> liste11111 =transactionRepository.findByOperateurAndSensAndIdU("Wave","encaissement",idU);
+  				List<Transaction> liste21111 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Wave","decaissement",idU);
+				List<Transaction> liste11111 =transactionRepository.findByDateAndOperateurAndSensAndIdU(formater.format(aujourdhui),"Wave","encaissement",idU);
 				List<Transaction> listeWaveP =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Plafonnement", "Wave",formater.format(aujourdhui),idU);
 				List<Transaction> listeWaveD =transactionRepository.findByOperateurAndOperationAndDateAndIdU("Deplafonnement", "Wave",formater.format(aujourdhui),idU);
 				for (Transaction transaction : listeWaveP) {
@@ -1278,6 +1301,7 @@ public class RestService  implements IService {
     
     private void mettreTransactionAzero(int idU) {
     	SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),idU,1).get(0);
+    	Majournee jour = maJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui),idU,1).get(0);
     	List<Transaction> listes = listeTansactionParCassier(idU);
     	
     	for (Transaction transaction : listes) {
@@ -1287,9 +1311,69 @@ public class RestService  implements IService {
 			
 		}
 		solde.setStatus(0);
+	    jour.setStatus(0);
 		updateSoldeDebuterJournee(solde.getId(), solde);
+		updateMajournee(jour.getId(), jour);
 		
     }
+
+	@Override
+	public  List<Majournee> getMajourneesById(int userId) {
+		
+		return maJourneeRepository.findByDateAndIdUAndStatus(formater.format(aujourdhui), userId,1);
+	}
+
+	@Override
+	public Majournee updateMajournee(int userId, Majournee ad) {
+		Majournee admin =maJourneeRepository
+                        .findById(userId);
+	
+    	admin.setCaisse(ad.getCaisse());
+		admin.setOrange(ad.getOrange());
+		admin.setxpress(ad.getxpress());
+		admin.setExpresso(ad.getExpresso());
+		admin.setProximo(ad.getProximo());
+		admin.setFreeMoney(ad.getFreeMoney());
+		admin.setWari(ad.getWari());
+		admin.setWave(ad.getWave());
+		admin.setWizall(ad.getWizall());
+		admin.setYup(ad.getYup()); 
+		admin.setBanque(ad.getBanque());
+		admin.setCloturer(ad.getCloturer());
+		admin.setSommeInitiale(ad.getSommeInitiale());
+		admin.setDate(ad.getDate());
+		admin.setIdU(ad.getIdU());
+		admin.setStatus(ad.getStatus());
+    	final Majournee updatedUser = maJourneeRepository.save(admin);	
+        return updatedUser;
+	}
+
+	@Override
+	public Majournee updateMajournee(int userId, SoldeDebuterJournee user) {
+		
+		
+    	SoldeDebuterJournee solde =soldeDebuterJourneeRepository.findByIdAndDateAndStatus(userId,formater.format(aujourdhui),1);
+        
+		
+		Majournee copie = maJourneeRepository.findByIdUAndDateAndStatus(solde.getIdU(),formater.format(aujourdhui),1);
+    	copie.setCaisse(user.getCaisse());
+    	copie.setOrange(user.getOrange());
+    	copie.setxpress(user.getxpress());
+    	copie.setBanque(user.getBanque());
+    	copie.setExpresso(user.getExpresso());
+    	copie.setProximo(user.getProximo());
+    	copie.setFreeMoney(user.getFreeMoney());
+    	copie.setWari(user.getWari());
+    	copie.setWave(user.getWave());
+    	copie.setWizall(user.getWizall());
+    	copie.setYup(user.getYup()); 
+    	copie.setCloturer(user.getCloturer());
+    	copie.setSommeInitiale(user.getSommeInitiale());
+    	copie.setIdU(user.getIdU());
+    	copie.setDate(user.getDate());
+    	copie.setStatus(user.getStatus());
+		return updateMajournee( copie.getId(), copie);
+	}
     
 	
 	

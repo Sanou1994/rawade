@@ -10,6 +10,6 @@ import com.app.metier.entities.SoldeDebuterJournee;
 public interface DaoSoldeDebuter extends JpaRepository<SoldeDebuterJournee,Integer> {
 	SoldeDebuterJournee findByIdU(int id);
 	SoldeDebuterJournee findById(int userId);
-	List<SoldeDebuterJournee> findByDateAndIdU(String date ,int idU);
+	SoldeDebuterJournee findByIdAndDateAndStatus(int userId,String date,int idU);
 	List<SoldeDebuterJournee> findByDateAndIdUAndStatus(String date ,int idU,int status);
 }

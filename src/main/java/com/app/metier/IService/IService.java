@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.app.metier.entities.Connexion;
 import com.app.metier.entities.Dates;
+import com.app.metier.entities.Majournee;
 import com.app.metier.entities.SoldeDebuterJournee;
 import com.app.metier.entities.Transaction;
 import com.app.metier.entities.Utilisateur;
@@ -28,6 +29,11 @@ public interface IService {
     public SoldeDebuterJournee createSoldeDebuterJournee( SoldeDebuterJournee user) ;
     public SoldeDebuterJournee updateSoldeDebuterJournee( int userId,  SoldeDebuterJournee ad);
     public Map<String, Boolean> deleteSoldeDebuterJournee( int userId) ;
+
+    //MAJOURNEE
+    public List<Majournee> getMajourneesById( int userId);
+    public Majournee updateMajournee( int userId,  Majournee ad);
+    public Majournee updateMajournee( int userId,  SoldeDebuterJournee ad);
     public List<Transaction>getAllTransactions();
     public Transaction getTransactionById( int userId);
     public void createTransactions(Transaction user) ;	

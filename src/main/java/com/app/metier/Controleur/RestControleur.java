@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.app.metier.Service.RestService;
 import com.app.metier.entities.Connexion;
 import com.app.metier.entities.Dates;
+import com.app.metier.entities.Majournee;
 import com.app.metier.entities.SoldeDebuterJournee;
 import com.app.metier.entities.Transaction;
 import com.app.metier.entities.Utilisateur;
@@ -61,7 +62,7 @@ public class RestControleur {
     
     //LA PARTIE CRUD DE SOLDEDEBUTERJOURNEE  
     @GetMapping("/soldeDebuterJournees/caissier/{idU}")
-    public List<SoldeDebuterJournee>getSoldeDebuterJournees(@PathVariable(value = "idU") int userId) {
+    public List<SoldeDebuterJournee> getSoldeDebuterJournees(@PathVariable(value = "idU") int userId) {
         return service.getSoldeDebuterJournees(userId);
     }
 
@@ -75,6 +76,11 @@ public class RestControleur {
         return service.getSoldeDebuterJourneesById(userId);
     }
     
+    @GetMapping("/maJournee/{id}")
+    public List<Majournee> getMJourneesById(@PathVariable(value = "id") int userId) {
+        return service.getMajourneesById(userId);
+    }
+    
     @PostMapping("/soldeDebuterJournees/ajouter")
     public SoldeDebuterJournee createSoldeDebuterJournee( @RequestBody SoldeDebuterJournee user) {
         return service.createSoldeDebuterJournee(user);
@@ -82,7 +88,8 @@ public class RestControleur {
     
     @PutMapping("/soldeDebuterJournees/modifier/{id}")
     public SoldeDebuterJournee updateSoldeDebuterJournee(@PathVariable(value = "id") int userId,  @RequestBody SoldeDebuterJournee ad){
-        return service.updateSoldeDebuterJournee(userId, ad);
+    	service.updateMajournee(userId,ad);
+    	return service.updateSoldeDebuterJournee(userId, ad);
     }
     @DeleteMapping("/soldeDebuterJournees/supprimer/{id}")
     public Map<String, Boolean> deleteSoldeDebuterJournee(@PathVariable(value = "id") int userId) {
