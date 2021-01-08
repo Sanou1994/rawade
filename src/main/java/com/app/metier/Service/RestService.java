@@ -28,7 +28,6 @@ import com.app.metier.entities.history;
 public class RestService  implements IService {
 
 	private  Date  aujourdhui = new Date();
-	private Utilisateur user = null;
 	private SimpleDateFormat formater = new SimpleDateFormat("dd/MM/yyyy");
     @Autowired
     private DaoUser userRepository;
@@ -682,7 +681,7 @@ public class RestService  implements IService {
     
   
     public Utilisateur seConnecter( Connexion con){	
-    	
+    	Utilisateur user = null;
     	if(userRepository.findByLogin(con.getLogin())!=null) {
     		
     		user=userRepository.findByLoginAndPassword(con.getLogin(), con.getPassword());	
